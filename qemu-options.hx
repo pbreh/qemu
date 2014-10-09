@@ -1916,9 +1916,22 @@ override the default configuration (@option{-net nic -net user}) which
 is activated if no @option{-net} options are provided.
 ETEXI
 
+DEF("bandwidth", HAS_ARG, QEMU_OPTION_bandwidth,
+	"-bandwidth [limit=]n\n"
+	"                set the maximum bandwidth[bits per second] to 'n' (default=0, no limit)\n",
+	    QEMU_ARCH_ALL)
+STEXI
+@item -bandwidth [limit=]@var{n}]
+@findex -bandwidth
+Limit the network bandwith (bits per second).
+If the limit is reached, Qemu will sleep.
+0, the default means no limit.
+ETEXI
+
 STEXI
 @end table
 ETEXI
+
 DEFHEADING()
 
 DEFHEADING(Character device options:)

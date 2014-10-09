@@ -34,6 +34,8 @@ typedef void (NetPacketSent) (NetClientState *sender, ssize_t ret);
 #define QEMU_NET_PACKET_FLAG_NONE  0
 #define QEMU_NET_PACKET_FLAG_RAW  (1<<0)
 
+void qemu_net_set_bandwidth_limit (int64_t limit) ;
+
 NetQueue *qemu_new_net_queue(void *opaque);
 
 void qemu_del_net_queue(NetQueue *queue);

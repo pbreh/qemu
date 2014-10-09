@@ -23,7 +23,9 @@
 
 #include "net/queue.h"
 #include "qemu/queue.h"
+#include "qemu/timer.h"
 #include "net/net.h"
+#include "trace.h"
 
 /* The delivery handler may only return zero if it will call
  * qemu_net_queue_flush() when it determines that it is once again able
@@ -57,6 +59,15 @@ struct NetQueue {
 
     unsigned delivering : 1;
 };
+
+static int64_t bandwidth_limit = 0 ;	/* maximum number of bits per second */
+
+void qemu_net_set_bandwidth_limit (int64_t limit)
+{
+	bandwidth_limit = limit ;
+	trace_qemu_net_set_bandwidth_limit (limit) ;
+}
+
 
 NetQueue *qemu_new_net_queue(void *opaque)
 {
@@ -175,6 +186,44 @@ static ssize_t qemu_net_queue_deliver_iov(NetQueue *queue,
     return ret;
 }
 
+static int64_t limit_network_performance (int64_t start_clock,
+										  int64_t bytes)
+{
+	int64_t clock = get_clock() ;
+	int64_t sleep_secs = 0 ;
+	if (bandwidth_limit > 0)
+		sleep_secs = (bytes * 8) / bandwidth_limit - (clock - start_clock) / 1000000000LL ;
+	if (sleep_secs > 0) {
+		sleep (sleep_secs) ;
+		clock = get_clock() ;
+	}
+
+	return clock ;
+}
+
+static void log_and_limit_network_performance (size_t size)
+{
+	/*
+	 * Performance logging isn't specified yet.
+	 * Therefore we're using existing tracing.
+	 */
+	static int64_t logged_clock = 0 ;
+	static int64_t packets = 0 ;
+	static int64_t bytes = 0 ;
+	int64_t clock = 0 ;
+
+	packets++ ;
+	bytes = bytes + size ;
+	clock = limit_network_performance (logged_clock, bytes) ;
+	if (clock - logged_clock >= 1000000000LL) {
+		if (logged_clock > 0) /* don't log first event */
+			trace_log_network_performance (packets, bytes*8, (clock - logged_clock) / 1000000000LL) ;
+		packets = 0 ;
+		bytes = 0 ;
+		logged_clock = clock ;
+	}
+}
+
 ssize_t qemu_net_queue_send(NetQueue *queue,
                             NetClientState *sender,
                             unsigned flags,
@@ -184,6 +233,7 @@ ssize_t qemu_net_queue_send(NetQueue *queue,
 {
     ssize_t ret;
 
+    log_and_limit_network_performance (size) ;
     if (queue->delivering || !qemu_can_send_packet(sender)) {
         qemu_net_queue_append(queue, sender, flags, data, size, sent_cb);
         return 0;

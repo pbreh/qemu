@@ -1427,6 +1427,30 @@ static void smp_parse(QemuOpts *opts)
 
 }
 
+static QemuOptsList qemu_bandwidth_opts = {
+    .name = "bandwidth-opts",
+    .implied_opt_name = "limit",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_bandwidth_opts.head),
+    .desc = {
+        {
+            .name = "limit",
+            .type = QEMU_OPT_NUMBER,
+        },
+        { /*End of list */ }
+    },
+};
+
+static void bandwidth_parse(QemuOpts *opts)
+{
+    if (opts) {
+
+    	qemu_net_set_bandwidth_limit (qemu_opt_get_number(opts, "limit", 0)) ;
+
+    }
+
+}
+
 static void realtime_init(void)
 {
     if (enable_mlock) {
@@ -2997,6 +3021,7 @@ int main(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_machine_opts);
     qemu_add_opts(&qemu_mem_opts);
     qemu_add_opts(&qemu_smp_opts);
+    qemu_add_opts(&qemu_bandwidth_opts);
     qemu_add_opts(&qemu_boot_opts);
     qemu_add_opts(&qemu_sandbox_opts);
     qemu_add_opts(&qemu_add_fd_opts);
@@ -3756,6 +3781,11 @@ int main(int argc, char **argv, char **envp)
                     exit(1);
                 }
                 break;
+            case QEMU_OPTION_bandwidth:
+                if (!qemu_opts_parse(qemu_find_opts("bandwidth-opts"), optarg, 1)) {
+                    exit(1);
+                }
+                break;
 	    case QEMU_OPTION_vnc:
 #ifdef CONFIG_VNC
                 display_remote++;
@@ -4093,7 +4123,7 @@ int main(int argc, char **argv, char **envp)
 
     smp_parse(qemu_opts_find(qemu_find_opts("smp-opts"), NULL));
 
-    machine_class->max_cpus = machine_class->max_cpus ?: 1; /* Default to UP */
+     machine_class->max_cpus = machine_class->max_cpus ?: 1; /* Default to UP */
     if (smp_cpus > machine_class->max_cpus) {
         fprintf(stderr, "Number of SMP cpus requested (%d), exceeds max cpus "
                 "supported by machine `%s' (%d)\n", smp_cpus,
@@ -4101,7 +4131,9 @@ int main(int argc, char **argv, char **envp)
         exit(1);
     }
 
-    /*
+    bandwidth_parse(qemu_opts_find(qemu_find_opts("bandwidth-opts"), NULL));
+
+   /*
      * Get the default machine options from the machine if it is not already
      * specified either by the configuration file or by the command line.
      */

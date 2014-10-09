@@ -133,6 +133,7 @@ thread_pool_cancel(void *req, void *opaque) "req %p opaque %p"
 # block/raw-win32.c
 # block/raw-posix.c
 paio_submit_co(int64_t sector_num, int nb_sectors, int type) "sector_num %"PRId64" nb_sectors %d type %d"
+log_guest_storage_performance(int64_t counter, int64_t seconds) "counter %"PRId64" seconds %"PRId64"
 paio_submit(void *acb, void *opaque, int64_t sector_num, int nb_sectors, int type) "acb %p opaque %p sector_num %"PRId64" nb_sectors %d type %d"
 
 # ioport.c
@@ -1372,3 +1373,7 @@ kvm_clear_cmma(int rc) "CMMA: clearing with result code %d"
 
 # hw/dma/i8257.c
 i8257_unregistered_dma(int nchan, int dma_pos, int dma_len) "unregistered DMA channel used nchan=%d dma_pos=%d dma_len=%d"
+
+# net/queue.c
+qemu_net_set_bandwidth_limit(int64_t limit) "bits per second %"PRId64"
+log_network_performance(int64_t packets, int64_t bits, int64_t seconds) "packets %"PRId64" "bits %"PRId64" seconds %"PRId64"

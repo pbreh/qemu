@@ -1016,6 +1016,25 @@ static int aio_worker(void *arg)
     return ret;
 }
 
+static void log_guest_storage_performance (void)
+{
+	/*
+	 * Performance logging isn't specified yet.
+	 * Therefore we're using existing tracing.
+	 */
+	static int64_t logged_clock = 0 ;
+	static int64_t counter = 0 ;
+	int64_t clock = get_clock() ;
+
+	counter++ ;
+	if (clock - logged_clock >= 1000000000LL) {
+		if (logged_clock > 0) /* don't log first event */
+			trace_log_guest_storage_performance (counter, (clock - logged_clock) / 1000000000LL) ;
+		counter = 0 ;
+		logged_clock = clock ;
+	}
+}
+
 static int paio_submit_co(BlockDriverState *bs, int fd,
         int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
         int type)
@@ -1036,6 +1055,7 @@ static int paio_submit_co(BlockDriverState *bs, int fd,
         assert(qiov->size == acb->aio_nbytes);
     }
 
+    log_guest_storage_performance();
     trace_paio_submit_co(sector_num, nb_sectors, type);
     pool = aio_get_thread_pool(bdrv_get_aio_context(bs));
     return thread_pool_submit_co(pool, aio_worker, acb);
@@ -1061,6 +1081,7 @@ static BlockDriverAIOCB *paio_submit(BlockDriverState *bs, int fd,
         assert(qiov->size == acb->aio_nbytes);
     }
 
+    log_guest_storage_performance();
     trace_paio_submit(acb, opaque, sector_num, nb_sectors, type);
     pool = aio_get_thread_pool(bdrv_get_aio_context(bs));
     return thread_pool_submit_aio(pool, aio_worker, acb, cb, opaque);
