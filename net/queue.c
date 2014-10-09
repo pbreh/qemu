@@ -190,11 +190,11 @@ static int64_t limit_network_performance (int64_t start_clock,
 										  int64_t bytes)
 {
 	int64_t clock = get_clock() ;
-	int64_t sleep_secs = 0 ;
+	int64_t sleep_usecs = 0 ;
 	if (bandwidth_limit > 0)
-		sleep_secs = (bytes * 8) / bandwidth_limit - (clock - start_clock) / 1000000000LL ;
-	if (sleep_secs > 0) {
-		sleep (sleep_secs) ;
+		sleep_usecs = (bytes * 8 * 1000000LL) / bandwidth_limit - (clock - start_clock) / 1000LL ;
+	if (sleep_usecs > 0) {
+		usleep (sleep_usecs) ;
 		clock = get_clock() ;
 	}
 
